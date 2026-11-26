@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sankalp Kavacham</string>
+    <string name="tagline">Truecaller Kante Better – 100% Free, No Ads, Made for India</string>
+
+    <!-- Navigation -->
+    <string name="nav_dialer">Dialer</string>
+    <string name="nav_calls">Calls</string>
+    <string name="nav_spam">Spam Box</string>
+    <string name="nav_assistant">Assistant</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_greeting_morning">Good Morning</string>
+    <string name="dashboard_greeting_afternoon">Good Afternoon</string>
+    <string name="dashboard_greeting_evening">Good Evening</string>
+    <string name="protection_status_active">Protection Active</string>
+    <string name="protection_status_partial">Partial Protection</string>
+    <string name="protection_status_inactive">Protection Inactive</string>
+    <string name="calls_screened">Calls Screened</string>
+    <string name="messages_checked">Messages Checked</string>
+    <string name="threats_detected">Threats Detected</string>
+    <string name="last_scan">Last Scan</string>
+    <string name="never">Never</string>
+
+    <!-- Quick Actions -->
+    <string name="action_open_dialer">Open Dialer</string>
+    <string name="action_check_number">Check a Number</string>
+    <string name="action_scan_message">Scan a Message</string>
+    <string name="action_check_media">Check Photo / Video</string>
+    <string name="action_kavacham_amma">Kavacham Amma</string>
+    <string name="action_spam_box">Spam Box</string>
+    <string name="action_cyber_help">Emergency Cyber Help</string>
+
+    <!-- Dialer -->
+    <string name="dialer_title">Dialer</string>
+    <string name="dialer_keypad">Keypad</string>
+    <string name="dialer_recents">Recents</string>
+    <string name="dialer_contacts">Contacts</string>
+    <string name="dialer_spambox">Spam Box</string>
+    <string name="dialer_enter_number">Enter a number to check</string>
+    <string name="dialer_no_recents">No recent calls</string>
+    <string name="dialer_no_contacts">No contacts found</string>
+
+    <!-- Number Check -->
+    <string name="number_check_title">Number Check</string>
+    <string name="risk_low">Low Risk</string>
+    <string name="risk_suspicious">Suspicious</string>
+    <string name="risk_high">High Risk</string>
+    <string name="risk_unknown">Unknown</string>
+    <string name="reported_by">Reported by %1$d users</string>
+    <string name="no_reports">No reports found</string>
+    <string name="contact_found">Contact found in your phonebook</string>
+    <string name="not_in_contacts">Not in your contacts</string>
+    <string name="invalid_number">Invalid phone number</string>
+
+    <!-- Call Protection -->
+    <string name="call_screening_title">Call Protection</string>
+    <string name="call_screening_active">Call screening active</string>
+    <string name="call_screening_inactive">Call screening not set up</string>
+    <string name="set_as_screening_app">Set as Call Screening App</string>
+    <string name="scam_warning">⚠️ SCAM WARNING – Do not share OTP or send money</string>
+
+    <!-- SMS -->
+    <string name="sms_title">SMS Protection</string>
+    <string name="sms_inbox">Inbox</string>
+    <string name="sms_spam">Spam</string>
+    <string name="sms_suspicious_link">Suspicious Link Detected</string>
+    <string name="sms_fraud_keyword">Fraud Keyword Detected</string>
+    <string name="bomber_warning">⚠️ BOMBER ATTACK SUSPECTED – Multiple messages from same sender</string>
+    <string name="set_as_default_sms">Set as Default SMS App</string>
+    <string name="default_sms_required">This feature requires Sankalp Kavacham to be your default SMS app</string>
+
+    <!-- Honey Trap -->
+    <string name="honeytrap_title">Honey Trap Protection</string>
+    <string name="honeytrap_risk_detected">🚨 HONEY TRAP RISK DETECTED</string>
+    <string name="honeytrap_warning_telugu">Trap Lo Padakandi. Photo / Money Pampakandi.</string>
+    <string name="honeytrap_block">Block Number</string>
+    <string name="honeytrap_report">Report</string>
+    <string name="honeytrap_view_reasons">View Risk Reasons</string>
+    <string name="honeytrap_dismiss">Dismiss Warning</string>
+    <string name="honeytrap_no_threats">No honey trap risks detected</string>
+
+    <!-- Media Checker -->
+    <string name="media_title">Media Authenticity Check</string>
+    <string name="media_pick_photo">Pick Photo</string>
+    <string name="media_pick_video">Pick Video</string>
+    <string name="media_pick_audio">Pick Audio</string>
+    <string name="media_analyzing">Analyzing…</string>
+    <string name="media_not_configured">Advanced authenticity analysis is not configured yet. Basic face detection is available.</string>
+    <string name="media_manipulation_detected">⚠️ Possible manipulation detected – Further verification recommended</string>
+    <string name="media_no_issues">No obvious manipulation indicators found</string>
+    <string name="media_analysis_limitation">Note: This analysis uses on-device tools only. It is not a certified deepfake detector.</string>
+
+    <!-- Voice Assistant -->
+    <string name="assistant_title">Kavacham Amma</string>
+    <string name="assistant_tap_to_speak">Tap the microphone to speak</string>
+    <string name="assistant_listening">Listening…</string>
+    <string name="assistant_processing">Processing…</string>
+    <string name="assistant_not_supported">Speech recognition not available on this device</string>
+    <string name="assistant_telugu_hint">Telugu lో మాట్లాడవచ్చు</string>
+
+    <!-- Privacy -->
+    <string name="privacy_title">Privacy Centre</string>
+    <string name="privacy_your_privacy_matters">Your Privacy Matters</string>
+    <string name="privacy_no_ads">No Advertisements</string>
+    <string name="privacy_no_premium">No Paid Premium Features</string>
+    <string name="privacy_no_data_sale">Your Data is Never Sold</string>
+    <string name="privacy_on_device">On-device Processing Wherever Possible</string>
+    <string name="privacy_contacts_not_uploaded">Contacts Not Uploaded Without Permission</string>
+    <string name="permission_contacts">Contacts</string>
+    <string name="permission_phone">Phone &amp; Calls</string>
+    <string name="permission_call_screening">Call Screening</string>
+    <string name="permission_sms">SMS</string>
+    <string name="permission_microphone">Microphone</string>
+    <string name="permission_camera">Camera</string>
+    <string name="permission_notifications">Notifications</string>
+    <string name="permission_granted">Granted</string>
+    <string name="permission_denied">Denied</string>
+    <string name="permission_grant">Grant</string>
+
+    <!-- Block List -->
+    <string name="block_list_title">Block List</string>
+    <string name="block_number">Block Number</string>
+    <string name="unblock">Unblock</string>
+    <string name="blocked_on">Blocked on %1$s</string>
+    <string name="blocking_reason">Reason: %1$s</string>
+    <string name="no_blocked_numbers">No blocked numbers</string>
+
+    <!-- Report -->
+    <string name="report_title">Report</string>
+    <string name="report_number">Report this Number</string>
+    <string name="report_reason">Reason for Report</string>
+    <string name="report_spam_call">Spam Call</string>
+    <string name="report_fraud">Fraud / Scam</string>
+    <string name="report_honeytrap">Honey Trap</string>
+    <string name="report_robocall">Robocall</string>
+    <string name="report_harassment">Harassment</string>
+    <string name="report_submitted">Report submitted. Thank you!</string>
+    <string name="report_cybercrime">Report Cyber Fraud – 1930</string>
+    <string name="cybercrime_portal_url">https://cybercrime.gov.in/</string>
+    <string name="cybercrime_disclaimer">Filing an official complaint requires completing the process on the official portal or by calling 1930.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_text_size">Text Size</string>
+    <string name="settings_accessibility">Accessibility</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_about">About Sankalp Kavacham</string>
+    <string name="settings_delete_data">Delete Local Data</string>
+    <string name="settings_export_reports">Export My Reports</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="language_telugu">Telugu (తెలుగు)</string>
+    <string name="language_english">English</string>
+
+    <!-- General -->
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="close">Close</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="block">Block</string>
+    <string name="report">Report</string>
+    <string name="call">Call</string>
+    <string name="back">Back</string>
+    <string name="grant_permission">Grant Permission</string>
+    <string name="permission_rationale">This permission is needed to enable this feature</string>
+    <string name="feature_requires_permission">This feature requires the %1$s permission</string>
+    <string name="emergency_call_1930">Call 1930 (Cyber Crime Helpline)</string>
+    <string name="open_cybercrime_portal">Open cybercrime.gov.in</string>
+</resources>
+

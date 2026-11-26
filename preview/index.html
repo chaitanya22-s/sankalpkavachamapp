@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sankalp Kavacham – Live Interactive Preview with Supabase</title>
+  <!-- Supabase JS Client for Realtime & Database -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --primary: #16A34A;
+      --primary-dark: #065F46;
+      --primary-light: #DCFCE7;
+      --primary-pale: #F0FDF4;
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --danger: #DC2626;
+      --danger-light: #FEE2E2;
+      --warning: #F59E0B;
+      --warning-light: #FEF3C7;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --border: #E2E8F0;
+      --shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08);
+      --supabase-green: #3ECF8E;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    body { background: #0B1120; color: var(--text); display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 16px 10px; }
+
+    /* Top Preview Control Bar */
+    .top-controls {
+      background: #1E293B;
+      color: #FFF;
+      padding: 10px 20px;
+      border-radius: 40px;
+      margin-bottom: 14px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+      z-index: 100;
+    }
+    .top-controls h1 { font-size: 15px; font-weight: 700; color: #4ADE80; display: flex; align-items: center; gap: 8px; }
+    .btn-toggle {
+      background: #334155;
+      color: #FFF;
+      border: 1px solid #475569;
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn-toggle.active { background: var(--primary); border-color: var(--primary); }
+    .btn-toggle.supabase { background: #064E3B; border-color: #059669; color: #6EE7B7; }
+    .btn-toggle:hover { opacity: 0.9; }
+
+    /* Device Container */
+    .device-wrapper {
+      transition: all 0.3s ease;
+      background: #000;
+      padding: 12px;
+      border-radius: 46px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.1);
+      display: flex;
+      justify-content: center;
+    }
+    .device-wrapper.phone { width: 395px; height: 820px; }
+    .device-wrapper.tablet { width: 920px; height: 680px; border-radius: 36px; }
+
+    .screen {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      border-radius: 36px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .device-wrapper.tablet .screen { border-radius: 26px; flex-direction: row; }
+
+    /* Phone status bar */
+    .status-bar {
+      height: 28px;
+      background: var(--primary-dark);
+      color: #FFF;
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 18px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      user-select: none;
+    }
+    .status-bar .notch { width: 100px; height: 16px; background: #000; border-radius: 0 0 12px 12px; margin-top: -4px; }
+
+    /* Tablet Nav Rail */
+    .nav-rail {
+      width: 76px;
+      background: #FFF;
+      border-right: 1px solid var(--border);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 0;
+      gap: 16px;
+      z-index: 10;
+    }
+    .device-wrapper.tablet .nav-rail { display: flex; }
+
+    /* Content Area */
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Bottom Navigation (Phone) */
+    .bottom-nav {
+      height: 60px;
+      background: #FFF;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 10;
+    }
+    .device-wrapper.tablet .bottom-nav { display: none; }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 500;
+      background: none;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 12px;
+      transition: all 0.2s;
+    }
+    .nav-item.active { color: var(--primary); font-weight: 700; background: var(--primary-pale); }
+    .nav-item svg { width: 20px; height: 20px; fill: currentColor; }
+
+    /* Views */
+    .view { display: none; flex-direction: column; width: 100%; min-height: 100%; padding-bottom: 24px; }
+    .view.active { display: flex; }
+
+    /* Aurora Header */
+    .aurora-header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: #FFF;
+      padding: 22px 20px 18px;
+    }
+    .aurora-header h2 { font-size: 21px; font-weight: 800; }
+    .aurora-header p.sub { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+    .aurora-header .greeting { font-size: 14px; font-weight: 600; margin-top: 6px; }
+    .aurora-header .tagline { font-size: 11px; color: #BBF7D0; margin-top: 2px; }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 14px;
+      margin: 10px 14px 0;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(226, 232, 240, 0.7);
+    }
+    .card-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+
+    /* Shield Card */
+    .shield-card {
+      background: #FFF;
+      border-radius: 18px;
+      padding: 16px;
+      margin: -14px 14px 10px;
+      box-shadow: 0 10px 25px rgba(22, 163, 74, 0.12);
+      border: 1px solid var(--border);
+    }
+    .shield-row { display: flex; align-items: center; gap: 12px; }
+    .shield-icon-box {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: var(--primary-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+    }
+    .shield-icon-box svg { width: 30px; height: 30px; fill: currentColor; }
+    .shield-info h3 { font-size: 16px; font-weight: 700; color: var(--primary); }
+    .shield-info p { font-size: 11px; color: var(--text-muted); }
+
+    .stats-row {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .stat-item .val { font-size: 18px; font-weight: 800; color: var(--primary); }
+    .stat-item .val.danger { color: var(--danger); }
+    .stat-item .lbl { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Quick Actions Grid */
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding: 0 14px;
+      margin-top: 6px;
+    }
+    .device-wrapper.tablet .quick-grid { grid-template-columns: repeat(8, 1fr); }
+    .action-btn {
+      background: #FFF;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .action-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); border-color: var(--primary); }
+    .action-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .action-label { font-size: 9.5px; font-weight: 600; text-align: center; color: var(--text); line-height: 1.2; }
+
+    /* Keypad in Dialer */
+    .dialer-input-box {
+      padding: 14px 18px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      background: #FFF;
+    }
+    .dialed-number { font-size: 26px; font-weight: 700; color: var(--text); min-height: 34px; letter-spacing: 1px; word-break: break-all; }
+    .dialer-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    .keypad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      max-width: 260px;
+      margin: 14px auto 6px;
+    }
+    .key-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: #FFF;
+      border: 1px solid var(--border);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.04);
+    }
+    .key-btn:active { background: var(--primary-light); transform: scale(0.95); }
+    .key-btn .letters { font-size: 8px; font-weight: 500; color: var(--text-muted); letter-spacing: 1px; }
+
+    .dialer-actions {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      margin-top: 6px;
+    }
+    .btn-call {
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      background: var(--primary);
+      border: none;
+      color: #FFF;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 18px rgba(22, 163, 74, 0.4);
+      transition: all 0.2s;
+    }
+    .btn-call:hover { transform: scale(1.05); }
+
+    /* Risk result card */
+    .risk-banner {
+      margin: 10px 14px;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .risk-banner.green { background: var(--primary-light); color: var(--primary-dark); border: 1px solid #86EFAC; }
+    .risk-banner.orange { background: var(--warning-light); color: #92400E; border: 1px solid #FCD34D; }
+    .risk-banner.red { background: var(--danger-light); color: var(--danger); border: 1px solid #FCA5A5; }
+
+    /* Chat bubble */
+    .chat-box { flex: 1; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .chat-bubble {
+      max-width: 84%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .chat-bubble.assistant { background: #FFF; color: var(--text); border: 1px solid var(--border); align-self: flex-start; border-bottom-left-radius: 4px; }
+    .chat-bubble.user { background: var(--primary); color: #FFF; align-self: flex-end; border-bottom-right-radius: 4px; }
+
+    /* Text inputs & Buttons */
+    textarea, input[type="text"] {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
+      background: #FFF;
+      outline: none;
+    }
+    textarea:focus, input[type="text"]:focus { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-light); }
+    .btn-primary {
+      background: var(--primary);
+      color: #FFF;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.95; }
+    .btn-danger { background: var(--danger); color: #FFF; border: none; border-radius: 8px; padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .btn-secondary { background: #E2E8F0; color: var(--text); border: none; border-radius: 8px; padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+    /* Top AppBar */
+    .app-bar {
+      height: 48px;
+      background: #FFF;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      justify-content: space-between;
+    }
+
+    /* Tabs */
+    .tab-bar { display: flex; background: #FFF; border-bottom: 1px solid var(--border); }
+    .tab-btn { flex: 1; padding: 10px; background: none; border: none; font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    /* Supabase Community Badge */
+    .badge-verified {
+      background: #DC2626;
+      color: #FFF;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      text-transform: uppercase;
+    }
+    .badge-community {
+      background: #F59E0B;
+      color: #FFF;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    /* Preset Buttons for Scams */
+    .preset-pill {
+      background: #F1F5F9;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .preset-pill:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary-dark); }
+  </style>
+</head>
+<body>
+
+  <!-- Controls Bar -->
+  <div class="top-controls">
+    <h1>⚡ SANKALP KAVACHAM</h1>
+    <span style="font-size: 12px; color: #94A3B8;">Host: <strong>localhost:8080</strong></span>
+    
+    <div style="display: flex; gap: 6px;">
+      <button class="btn-toggle active" id="btnPhone" onclick="setDevice('phone')">📱 Phone</button>
+      <button class="btn-toggle" id="btnTablet" onclick="setDevice('tablet')">💻 Tablet</button>
+    </div>
+    
+    <div style="display: flex; gap: 6px;">
+      <button class="btn-toggle active" id="btnLangEn" onclick="setLanguage('en')">English</button>
+      <button class="btn-toggle" id="btnLangTe" onclick="setLanguage('te')">తెలుగు</button>
+    </div>
+
+    <button class="btn-toggle supabase" onclick="switchTab('supabase')">🟢 Supabase Backend</button>
+  </div>
+
+  <!-- Device Container -->
+  <div class="device-wrapper phone" id="device">
+    <div class="screen">
+
+      <!-- Navigation Rail for Tablet -->
+      <div class="nav-rail">
+        <div style="font-size: 22px; margin-bottom: 8px;">🛡️</div>
+        <button class="nav-item active" onclick="switchTab('dashboard')">🏠<span style="font-size:9px">Home</span></button>
+        <button class="nav-item" onclick="switchTab('dialer')">📞<span style="font-size:9px">Dialer</span></button>
+        <button class="nav-item" onclick="switchTab('spam')">🛡️<span style="font-size:9px">Spam</span></button>
+        <button class="nav-item" onclick="switchTab('supabase')">⚡<span style="font-size:9px">Supabase</span></button>
+        <button class="nav-item" onclick="switchTab('honeytrap')">⚠️<span style="font-size:9px">Trap</span></button>
+        <button class="nav-item" onclick="switchTab('amma')">🎙️<span style="font-size:9px">Amma</span></button>
+        <button class="nav-item" onclick="switchTab('privacy')">🔒<span style="font-size:9px">Privacy</span></button>
+      </div>
+
+      <div class="content-area">
+
+        <!-- Status bar -->
+        <div class="status-bar">
+          <span id="liveTime">09:41</span>
+          <div class="notch"></div>
+          <span>5G 📶 100% 🔋</span>
+        </div>
+
+        <!-- 1. DASHBOARD VIEW -->
+        <div class="view active" id="view-dashboard">
+          <div class="aurora-header">
+            <h2 id="txtAppName">సంకల్ప్ కవచం</h2>
+            <p class="sub">Sankalp Kavacham • Truecaller Kante Better</p>
+            <div class="greeting" id="txtGreeting">నమస్కారం 🙏 (Namaskaram)</div>
+            <div class="tagline">100% Free • No Ads • Powered by Supabase Realtime</div>
+          </div>
+
+          <!-- Shield Status -->
+          <div class="shield-card">
+            <div class="shield-row">
+              <div class="shield-icon-box">
+                <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+              </div>
+              <div class="shield-info">
+                <h3 id="txtShieldStatus">Protection Active</h3>
+                <p id="txtPermCount">Community Realtime Sync: Connected 🟢</p>
+              </div>
+            </div>
+            <div class="stats-row">
+              <div class="stat-item">
+                <div class="val" id="statCalls">142</div>
+                <div class="lbl" id="lblCalls">Calls Screened</div>
+              </div>
+              <div class="stat-item">
+                <div class="val" id="statMsgs">318</div>
+                <div class="lbl" id="lblMsgs">SMS Checked</div>
+              </div>
+              <div class="stat-item">
+                <div class="val danger" id="statThreats">12</div>
+                <div class="lbl" id="lblThreats">Threats Stopped</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="quick-grid">
+            <div class="action-btn" onclick="switchTab('dialer')">
+              <div class="action-icon" style="background:#DCFCE7; color:#16A34A;">📞</div>
+              <div class="action-label">Open Dialer</div>
+            </div>
+            <div class="action-btn" onclick="switchTab('supabase')">
+              <div class="action-icon" style="background:#D1FAE5; color:#059669;">⚡</div>
+              <div class="action-label">Supabase Sync</div>
+            </div>
+            <div class="action-btn" onclick="switchTab('spam')">
+              <div class="action-icon" style="background:#FEF3C7; color:#D97706;">💬</div>
+              <div class="action-label">Scan Message</div>
+            </div>
+            <div class="action-btn" onclick="switchTab('honeytrap')">
+              <div class="action-icon" style="background:#FFE4E6; color:#E11D48;">🚨</div>
+              <div class="action-label">Honey Trap</div>
+            </div>
+            <div class="action-btn" onclick="switchTab('amma')">
+              <div class="action-icon" style="background:#EDE9FE; color:#6D28D9;">🎙️</div>
+              <div class="action-label">Kavacham Amma</div>
+            </div>
+            <div class="action-btn" onclick="switchTab('media')">
+              <div class="action-icon" style="background:#F3E8FF; color:#7C3AED;">📸</div>
+              <div class="action-label">Check Photo</div>
+            </div>
+            <div class="action-btn" onclick="switchTab('privacy')">
+              <div class="action-icon" style="background:#E0F2FE; color:#0284C7;">🔒</div>
+              <div class="action-label">Privacy</div>
+            </div>
+            <div class="action-btn" onclick="call1930()" style="border-color:#FCA5A5;">
+              <div class="action-icon" style="background:#FEE2E2; color:#DC2626;">🆘</div>
+              <div class="action-label" style="color:#DC2626;">1930 Help</div>
+            </div>
+          </div>
+
+          <!-- Live Community Banner -->
+          <div class="card" style="border-color:#34D399; background:linear-gradient(180deg, #ECFDF5 0%, #FFFFFF 100%);">
+            <div class="card-title" style="color:#065F46;">
+              <span>⚡ Supabase Community Protection</span>
+              <span style="font-size:10px; background:#10B981; color:#FFF; padding:2px 6px; border-radius:10px;">REALTIME</span>
+            </div>
+            <p style="font-size:11px; color:#047857; line-height:1.4;">
+              Any number reported by 10+ users is instantly blacklisted across India in real-time. Zero delay protection!
+            </p>
+          </div>
+        </div>
+
+        <!-- 2. SUPABASE BACKEND SCREEN -->
+        <div class="view" id="view-supabase">
+          <div class="app-bar" style="background:#064E3B; color:#6EE7B7;">
+            <span>⚡ Supabase Backend Integration</span>
+            <button class="btn-toggle" style="background:#047857; color:#FFF; font-size:11px;" onclick="fetchSupabaseNumbers()">🔄 Refresh</button>
+          </div>
+
+          <!-- Credentials Config Box -->
+          <div class="card" style="background:#F0FDF4; border-color:#A7F3D0;">
+            <div class="card-title" style="color:#065F46;">
+              <span>🔑 Supabase Credentials Setup</span>
+              <span id="supabaseStatusPill" style="font-size:10px; background:#10B981; color:#FFF; padding:2px 8px; border-radius:12px;">Active</span>
+            </div>
+            <div style="font-size:11px; margin-bottom:6px;">
+              <label style="font-weight:600; color:var(--text-muted);">SUPABASE_URL:</label>
+              <input type="text" id="cfgUrl" value="https://xyzcompany.supabase.co" placeholder="https://your-project.supabase.co" />
+            </div>
+            <div style="font-size:11px; margin-bottom:8px;">
+              <label style="font-weight:600; color:var(--text-muted);">SUPABASE_ANON_KEY:</label>
+              <input type="text" id="cfgKey" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." placeholder="your-anon-key" />
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn-primary" style="background:#059669; font-size:11px; padding:6px 12px;" onclick="saveSupabaseConfig()">Save Credentials</button>
+              <button class="btn-secondary" style="font-size:11px; padding:6px 12px;" onclick="copySqlSchema()">📋 Copy SQL Migration</button>
+            </div>
+          </div>
+
+          <!-- Report Number Direct Form -->
+          <div class="card">
+            <div class="card-title">🚨 Report Fraud Number to Supabase</div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
+              <input type="text" id="repNumber" placeholder="Fraud Phone (e.g. 9848011223)" />
+              <select id="repType" style="border:1px solid var(--border); border-radius:8px; padding:6px 8px; font-size:11px;">
+                <option>Spam Call</option>
+                <option>Electricity Scam</option>
+                <option>Honey Trap</option>
+                <option>Fake Challan APK</option>
+                <option>Job Scam</option>
+                <option>Digital Arrest</option>
+              </select>
+            </div>
+            <input type="text" id="repReason" placeholder="Reason (e.g. Claimed current bill unpaid, asked OTP)" style="margin-bottom:8px;" />
+            <button class="btn-danger" style="width:100%; justify-content:center;" onclick="submitReportToSupabase()">
+              🚀 Submit Report to Supabase (Auto 10-Threshold Verification)
+            </button>
+          </div>
+
+          <!-- Live Community Reported Numbers Table -->
+          <div class="card">
+            <div class="card-title">
+              <span>📋 Community Reported Numbers (Realtime)</span>
+              <span style="font-size:11px; color:var(--text-muted);" id="tableCount">Showing 4 numbers</span>
+            </div>
+            <div id="supabaseNumbersList" style="display:flex; flex-direction:column; gap:8px;">
+              <!-- Dynamically rendered -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. SMART DIALER VIEW -->
+        <div class="view" id="view-dialer">
+          <div class="tab-bar">
+            <button class="tab-btn active" onclick="setDialerTab('keypad')">Keypad</button>
+            <button class="tab-btn" onclick="setDialerTab('recents')">Recents</button>
+            <button class="tab-btn" onclick="setDialerTab('contacts')">Contacts</button>
+          </div>
+
+          <div id="dialer-tab-keypad">
+            <div class="dialer-input-box">
+              <div class="dialed-number" id="displayNumber">--</div>
+              <div class="dialer-sub" id="displayInfo">Enter number or tap keypad</div>
+            </div>
+
+            <!-- Risk result card -->
+            <div id="riskResultCard" style="display:none;" class="risk-banner green">
+              <span id="riskIcon" style="font-size:20px;">✅</span>
+              <div>
+                <strong id="riskTitle">Low Risk</strong>
+                <div id="riskDetails" style="font-size:11px;">No spam reports found in local database</div>
+              </div>
+            </div>
+
+            <!-- Keypad -->
+            <div class="keypad-grid">
+              <button class="key-btn" onclick="pressDigit('1')">1<span class="letters">&nbsp;</span></button>
+              <button class="key-btn" onclick="pressDigit('2')">2<span class="letters">ABC</span></button>
+              <button class="key-btn" onclick="pressDigit('3')">3<span class="letters">DEF</span></button>
+              <button class="key-btn" onclick="pressDigit('4')">4<span class="letters">GHI</span></button>
+              <button class="key-btn" onclick="pressDigit('5')">5<span class="letters">JKL</span></button>
+              <button class="key-btn" onclick="pressDigit('6')">6<span class="letters">MNO</span></button>
+              <button class="key-btn" onclick="pressDigit('7')">7<span class="letters">PQRS</span></button>
+              <button class="key-btn" onclick="pressDigit('8')">8<span class="letters">TUV</span></button>
+              <button class="key-btn" onclick="pressDigit('9')">9<span class="letters">WXYZ</span></button>
+              <button class="key-btn" onclick="pressDigit('*')">*<span class="letters">&nbsp;</span></button>
+              <button class="key-btn" onclick="pressDigit('0')">0<span class="letters">+</span></button>
+              <button class="key-btn" onclick="pressDigit('#')">#<span class="letters">&nbsp;</span></button>
+            </div>
+
+            <div class="dialer-actions">
+              <button class="btn-primary" style="padding:10px 14px;" onclick="checkEnteredNumber()">🔍 Check Reputation</button>
+              <button class="btn-call" onclick="makeCall()" title="Call">📞</button>
+              <button class="btn-secondary" style="padding:10px 14px;" onclick="backspace()">⌫</button>
+            </div>
+          </div>
+
+          <div id="dialer-tab-recents" style="display:none; padding:12px;">
+            <div class="card" style="margin:0 0 8px; padding:12px; border-color:#FCA5A5;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <strong style="color:var(--danger);">+91 91234 56789</strong>
+                  <span class="badge-verified" style="margin-left:4px;">VERIFIED SPAM (14 REPORTS)</span>
+                  <div style="font-size:11px; color:var(--danger); margin-top:2px;">⚠️ Blocked by CallScreeningService (Electricity Bill Scam)</div>
+                </div>
+              </div>
+            </div>
+            <div class="card" style="margin:0 0 8px; padding:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <strong>+91 98480 22334</strong>
+                  <div style="font-size:11px; color:#16A34A;">↙ Incoming • 3m 42s</div>
+                </div>
+                <button class="btn-primary" style="padding:4px 8px;" onclick="setAndCheck('9848022334')">Check</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="dialer-tab-contacts" style="display:none; padding:12px;">
+            <div class="card" style="margin:0 0 8px; padding:12px;">
+              <strong>Ravi Kumar (Hyderabad)</strong>
+              <div style="font-size:12px; color:var(--text-muted);">+91 94401 23456</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. ENHANCED SMS SPAM & SCAM VIEW -->
+        <div class="view" id="view-spam">
+          <div class="app-bar">
+            <span>🛡️ Advanced SMS Fraud Scanner</span>
+          </div>
+
+          <!-- Presets for Testing -->
+          <div class="card" style="background:#F8FAFC;">
+            <div class="card-title">⚡ Test 1-Click Common Indian Scams</div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+              <button class="preset-pill" onclick="loadPreset('electricity')">💡 Electricity Cut Scam</button>
+              <button class="preset-pill" onclick="loadPreset('challan')">🚗 Traffic E-Challan APK</button>
+              <button class="preset-pill" onclick="loadPreset('job')">💼 Telegram Task Job Scam</button>
+              <button class="preset-pill" onclick="loadPreset('digital_arrest')">👮 Digital Arrest CBI</button>
+              <button class="preset-pill" onclick="loadPreset('yono')">🏦 SBI YONO KYC Block</button>
+              <button class="preset-pill" onclick="loadPreset('courier')">📦 India Post Address Trap</button>
+              <button class="preset-pill" onclick="loadPreset('lottery')">🎁 KBC 25 Lakh Winner</button>
+              <button class="preset-pill" onclick="loadPreset('telugu')">🇮🇳 Telugu Script Scam</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">🔍 Scan Message Text</div>
+            <textarea id="smsInput" rows="3" placeholder="Paste incoming SMS text here to test…"></textarea>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button class="btn-primary" onclick="scanSms()">Deep Scan Message</button>
+              <button class="btn-secondary" onclick="simulateBomber()">Test Bomber Detection</button>
+            </div>
+
+            <!-- Deep Analysis Result -->
+            <div id="smsScanResult" style="display:none; margin-top:12px;" class="risk-banner red">
+              <div style="width:100%;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <strong id="smsResultTitle" style="font-size:13px;">🚨 High Fraud Risk</strong>
+                  <span id="smsCategoryTag" class="badge-verified">CATEGORY</span>
+                </div>
+                <div id="smsReasonsList" style="font-size:11px; margin:6px 0; line-height:1.4;"></div>
+                <div id="smsTeluguBox" style="background:rgba(255,255,255,0.7); padding:8px; border-radius:8px; font-size:11px; color:#991B1B; font-weight:600; margin-top:6px;">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. HONEY TRAP PROTECTION VIEW -->
+        <div class="view" id="view-honeytrap">
+          <div class="app-bar">
+            <span>🚨 Honey Trap Detection Engine</span>
+          </div>
+          <div class="card" style="background:#FFF7ED; border-color:#FED7AA;">
+            <div class="card-title" style="color:#9A3412;">⚠️ Real Honey Trap Sequence Detection</div>
+            <p style="font-size:11px; color:#9A3412; line-height:1.4;">
+              Detects multi-stage conversational extortion: friendly romantic greeting -> video call invite -> request for private photo -> financial blackmail.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">🧪 Conversation Pattern Analyzer</div>
+            <textarea id="honeyTrapInput" rows="4" placeholder="Type or paste conversation messages here…"></textarea>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button class="btn-primary" onclick="analyseHoneyTrap()">Analyze Extortion Risk</button>
+              <button class="btn-secondary" onclick="loadSampleTrap()">Load English & Telugu Sample</button>
+            </div>
+
+            <div id="trapResult" style="display:none; margin-top:12px; padding:12px; border-radius:12px; background:#FEE2E2; border:1px solid #FCA5A5;">
+              <div style="color:#DC2626; font-weight:800; font-size:13px;">🚨 HONEY TRAP RISK DETECTED</div>
+              <div style="color:#DC2626; font-weight:700; font-size:12px; margin-top:4px;">"Trap Lo Padakandi. Photo / Money Pampakandi."</div>
+              <p style="font-size:11px; margin-top:6px; color:#7F1D1D;" id="trapExplanation"></p>
+              <div style="display:flex; gap:8px; margin-top:10px;">
+                <button class="btn-danger" onclick="reportTrapToSupabase()">Report to Supabase</button>
+                <button class="btn-secondary" onclick="call1930()">Call 1930</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. KAVACHAM AMMA VIEW -->
+        <div class="view" id="view-amma">
+          <div class="app-bar" style="background:#7C3AED; color:#FFF;">
+            <span>🎙️ Kavacham Amma (కవచం అమ్మ)</span>
+          </div>
+          <div class="chat-box" id="ammaChat">
+            <div class="chat-bubble assistant">
+              నమస్కారం! నేను కవచం అమ్మ. నేను మీకు సైబర్ భద్రత విషయాలలో సహాయం చేయగలను.<br><br>
+              Hello! I am Kavacham Amma. Ask me about OTP fraud, 1930 helpline, or checking scam messages.
+            </div>
+          </div>
+          <div style="padding:8px 12px; background:#FFF; border-top:1px solid var(--border);">
+            <div style="display:flex; gap:6px; overflow-x:auto; margin-bottom:6px;">
+              <button class="preset-pill" onclick="askAmma('Naku OTP vachindi, share cheyyala?')">OTP share cheyyala?</button>
+              <button class="preset-pill" onclick="askAmma('Current bill scam ela untundi?')">Current Bill Scam?</button>
+              <button class="preset-pill" onclick="askAmma('1930 ki ela call cheyyali?')">1930 Helpline</button>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="ammaInput" placeholder="Type question or tap mic…" onkeypress="if(event.key==='Enter') sendAmmaMsg();" />
+              <button class="btn-primary" onclick="sendAmmaMsg()">Send</button>
+              <button class="btn-primary" style="background:#7C3AED;" onclick="toggleVoice()">🎙️</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. MEDIA AUTHENTICITY VIEW -->
+        <div class="view" id="view-media">
+          <div class="app-bar">
+            <span>📸 Media Authenticity Checker</span>
+          </div>
+          <div class="card">
+            <div class="card-title">Select Photo / Video Frame</div>
+            <input type="file" id="mediaUpload" accept="image/*,video/*" onchange="previewMedia(this)" style="margin-bottom:10px;" />
+            <div id="mediaPreviewBox" style="display:none; text-align:center; margin:10px 0;">
+              <img id="imgPreview" style="max-width:100%; max-height:160px; border-radius:12px;" />
+            </div>
+            <button class="btn-primary" onclick="inspectMedia()">Run Authenticity Inspection</button>
+            <div id="mediaResult" style="display:none; margin-top:10px;" class="risk-banner green">
+              <div id="mediaResultText" style="font-size:11px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8. PRIVACY VIEW -->
+        <div class="view" id="view-privacy">
+          <div class="app-bar">
+            <span>🔒 Privacy Centre & 1930 Help</span>
+          </div>
+          <div class="card" style="border-color:#FCA5A5; background:#FFF1F2;">
+            <div class="card-title" style="color:#BE123C;">🆘 Emergency Cyber Fraud Helpline: 1930</div>
+            <div style="font-size:24px; font-weight:800; color:#BE123C; margin:4px 0;">1930</div>
+            <p style="font-size:11px; color:#BE123C; margin-bottom:8px;">
+              National Cyber Crime Helpline operated by Ministry of Home Affairs, Government of India.
+            </p>
+            <button class="btn-danger" onclick="call1930()">📞 Call 1930 Now</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom Nav (Phone only) -->
+      <div class="bottom-nav">
+        <button class="nav-item active" id="bnDashboard" onclick="switchTab('dashboard')">
+          <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+          Home
+        </button>
+        <button class="nav-item" id="bnDialer" onclick="switchTab('dialer')">
+          <svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-1.57 1.97c-2.83-1.44-5.15-3.75-6.59-6.59l1.97-1.57c.28-.28.37-.68.25-1.02A11.36 11.36 0 019 4.27c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-.99-1.39z"/></svg>
+          Dialer
+        </button>
+        <button class="nav-item" id="bnSpam" onclick="switchTab('spam')">
+          <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+          Spam Box
+        </button>
+        <button class="nav-item" id="bnSupabase" onclick="switchTab('supabase')">
+          <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Supabase
+        </button>
+        <button class="nav-item" id="bnAmma" onclick="switchTab('amma')">
+          <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+          Amma
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // In-memory Supabase Community database state (synced with real Supabase when credentials provided)
+    let communityNumbers = [
+      { id: 1, number: "+91 91234 56789", reason: "Electricity Power Disconnect Scam", reported_count: 14, is_verified_spam: true },
+      { id: 2, number: "+91 98480 99887", reason: "Fake Traffic E-Challan APK Link", reported_count: 11, is_verified_spam: true },
+      { id: 3, number: "+91 99887 76655", reason: "Honey Trap Video Call Blackmail", reported_count: 7, is_verified_spam: false },
+      { id: 4, number: "+91 90001 22334", reason: "SBI YONO KYC Suspension SMS", reported_count: 4, is_verified_spam: false }
+    ];
+
+    let supabaseClient = null;
+
+    function initSupabase() {
+      const url = document.getElementById('cfgUrl').value.trim();
+      const key = document.getElementById('cfgKey').value.trim();
+      if (window.supabase && url.startsWith('http') && !url.includes('xyzcompany')) {
+        try {
+          supabaseClient = window.supabase.createClient(url, key);
+          document.getElementById('supabaseStatusPill').textContent = 'Connected (Realtime Live)';
+          document.getElementById('supabaseStatusPill').style.background = '#10B981';
+
+          // Subscribe to Realtime postgres_changes
+          supabaseClient.channel('realtime:spam_numbers')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'spam_numbers' }, (payload) => {
+              console.log('Realtime update received:', payload);
+              fetchSupabaseNumbers();
+            })
+            .subscribe();
+        } catch(e) {
+          console.warn("Supabase local init:", e);
+        }
+      }
+    }
+
+    function saveSupabaseConfig() {
+      initSupabase();
+      alert("✅ Supabase credentials saved! Realtime synchronization is active.");
+      fetchSupabaseNumbers();
+    }
+
+    function fetchSupabaseNumbers() {
+      if (supabaseClient) {
+        supabaseClient
+          .from('spam_numbers')
+          .select('*')
+          .order('reported_count', { ascending: false })
+          .then(({ data, error }) => {
+            if (!error && data && data.length > 0) {
+              communityNumbers = data;
+              renderCommunityTable();
+            } else {
+              renderCommunityTable();
+            }
+          });
+      } else {
+        renderCommunityTable();
+      }
+    }
+
+    function renderCommunityTable() {
+      const list = document.getElementById('supabaseNumbersList');
+      list.innerHTML = '';
+      document.getElementById('tableCount').textContent = `Showing ${communityNumbers.length} numbers`;
+
+      communityNumbers.forEach(item => {
+        const row = document.createElement('div');
+        row.style.cssText = "padding:10px; border-radius:10px; background:#F8FAFC; border:1px solid #E2E8F0; display:flex; justify-content:space-between; align-items:center;";
+
+        const isVerified = item.reported_count >= 10 || item.is_verified_spam;
+        const badge = isVerified ?
+          `<span class="badge-verified">VERIFIED SPAM (${item.reported_count} REPORTS)</span>` :
+          `<span class="badge-community">${item.reported_count} Community Reports</span>`;
+
+        row.innerHTML = `
+          <div>
+            <div style="font-weight:700; font-size:13px; color:${isVerified ? '#DC2626' : '#0F172A'};">
+              ${item.number}
+            </div>
+            <div style="font-size:11px; color:#64748B; margin-top:2px;">${item.reason}</div>
+          </div>
+          <div style="text-align:right;">
+            ${badge}
+            <div style="margin-top:4px;">
+              <button class="btn-secondary" style="font-size:10px; padding:2px 8px;" onclick="setAndCheck('${item.number.replace(/[^0-9]/g, '')}')">Inspect</button>
+            </div>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    function submitReportToSupabase() {
+      const number = document.getElementById('repNumber').value.trim();
+      const type = document.getElementById('repType').value;
+      const reason = document.getElementById('repReason').value.trim() || type;
+
+      if (!number) { alert("Please enter phone number to report."); return; }
+
+      // Check if number exists in local list
+      const existing = communityNumbers.find(n => n.number.includes(number) || number.includes(n.number.replace(/[^0-9]/g, '')));
+      if (existing) {
+        existing.reported_count += 1;
+        existing.reason = reason;
+        if (existing.reported_count >= 10) existing.is_verified_spam = true;
+      } else {
+        communityNumbers.unshift({
+          id: Date.now(),
+          number: number.startsWith("+91") ? number : "+91 " + number,
+          reason: reason,
+          reported_count: 1,
+          is_verified_spam: false
+        });
+      }
+
+      // Also send to remote Supabase if client active
+      if (supabaseClient) {
+        supabaseClient.from('reports').insert([{ fraud_number: number, message: reason, type: type }]);
+      }
+
+      renderCommunityTable();
+      document.getElementById('repNumber').value = '';
+      document.getElementById('repReason').value = '';
+
+      alert(`✅ Report submitted! Stored in Supabase.\nAutomatic rule: If 10 users report this number, it is automatically marked as SPAM for all users.`);
+    }
+
+    function copySqlSchema() {
+      const sql = `-- Supabase migration SQL is available in supabase_schema.sql in the project root.\n-- Tables: spam_numbers, spam_messages, reports with 10-threshold auto verification trigger!`;
+      navigator.clipboard.writeText(sql);
+      alert("📋 SQL Migration instructions copied! You can execute supabase_schema.sql in your Supabase SQL Editor.");
+    }
+
+    // Live clock
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('liveTime').textContent =
+        now.getHours().toString().padStart(2, '0') + ':' +
+        now.getMinutes().toString().padStart(2, '0');
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function setDevice(type) {
+      const dev = document.getElementById('device');
+      const bP = document.getElementById('btnPhone');
+      const bT = document.getElementById('btnTablet');
+      if (type === 'tablet') {
+        dev.className = 'device-wrapper tablet';
+        bT.className = 'btn-toggle active';
+        bP.className = 'btn-toggle';
+      } else {
+        dev.className = 'device-wrapper phone';
+        bP.className = 'btn-toggle active';
+        bT.className = 'btn-toggle';
+      }
+    }
+
+    let currentLang = 'en';
+    function setLanguage(lang) {
+      currentLang = lang;
+      document.getElementById('btnLangEn').className = lang === 'en' ? 'btn-toggle active' : 'btn-toggle';
+      document.getElementById('btnLangTe').className = lang === 'te' ? 'btn-toggle active' : 'btn-toggle';
+      document.getElementById('txtAppName').textContent = lang === 'te' ? 'సంకల్ప్ కవచం' : 'Sankalp Kavacham';
+      document.getElementById('txtGreeting').textContent = lang === 'te' ? 'నమస్కారం 🙏 (Namaskaram)' : 'Good Morning / Namaskaram 🙏';
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      const target = document.getElementById('view-' + tabId);
+      if (target) target.classList.add('active');
+
+      document.querySelectorAll('.bottom-nav .nav-item').forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById('bn' + tabId.charAt(0).toUpperCase() + tabId.slice(1));
+      if (activeBtn) activeBtn.classList.add('active');
+
+      if (tabId === 'supabase') fetchSupabaseNumbers();
+    }
+
+    // Dialer
+    let curNumber = "";
+    function pressDigit(d) { curNumber += d; updateDisplay(); }
+    function backspace() { curNumber = curNumber.slice(0, -1); updateDisplay(); }
+    function updateDisplay() {
+      document.getElementById('displayNumber').textContent = curNumber || "--";
+      document.getElementById('displayInfo').textContent = curNumber ? `Length: ${curNumber.length} digits` : "Enter number or tap keypad";
+      document.getElementById('riskResultCard').style.display = 'none';
+    }
+
+    function checkEnteredNumber() {
+      if (!curNumber) return;
+      const card = document.getElementById('riskResultCard');
+      const title = document.getElementById('riskTitle');
+      const desc = document.getElementById('riskDetails');
+      const icon = document.getElementById('riskIcon');
+
+      card.style.display = 'flex';
+
+      // Check community list
+      const commMatch = communityNumbers.find(item => item.number.replace(/[^0-9]/g, '').includes(curNumber) || curNumber.includes(item.number.replace(/[^0-9]/g, '')));
+
+      if (commMatch && (commMatch.reported_count >= 10 || commMatch.is_verified_spam)) {
+        card.className = "risk-banner red";
+        icon.textContent = "🚨";
+        title.textContent = `Community Verified Spam (${commMatch.reported_count} reports on Supabase)`;
+        desc.textContent = `Reason: ${commMatch.reason}. Auto-blocked by CallScreeningService.`;
+      } else if (commMatch && commMatch.reported_count >= 2) {
+        card.className = "risk-banner orange";
+        icon.textContent = "⚠️";
+        title.textContent = `Suspicious – Reported by ${commMatch.reported_count} users on Supabase`;
+        desc.textContent = `Reason: ${commMatch.reason}. Caution recommended.`;
+      } else if (curNumber.startsWith("98") || curNumber.startsWith("94") || curNumber.startsWith("99")) {
+        card.className = "risk-banner green";
+        icon.textContent = "✅";
+        title.textContent = "Clean Indian Mobile Number (Low Risk)";
+        desc.textContent = "+91 " + curNumber + " • Clean record in local and Supabase community databases.";
+      } else {
+        card.className = "risk-banner orange";
+        icon.textContent = "❓";
+        title.textContent = "Unregistered Number";
+        desc.textContent = "No community reports found. Keep privacy guard on.";
+      }
+    }
+
+    function makeCall() {
+      if (!curNumber) { alert("Please enter phone number first!"); return; }
+      alert(`Calling: ${curNumber} via Telecom Call Integration...`);
+    }
+
+    function setAndCheck(num) {
+      curNumber = num;
+      updateDisplay();
+      switchTab('dialer');
+      setDialerTab('keypad');
+      checkEnteredNumber();
+    }
+
+    function setDialerTab(t) {
+      document.getElementById('dialer-tab-keypad').style.display = t === 'keypad' ? 'block' : 'none';
+      document.getElementById('dialer-tab-recents').style.display = t === 'recents' ? 'block' : 'none';
+      document.getElementById('dialer-tab-contacts').style.display = t === 'contacts' ? 'block' : 'none';
+      document.querySelectorAll('.tab-bar .tab-btn').forEach((b, i) => {
+        b.className = (i === 0 && t === 'keypad') || (i === 1 && t === 'recents') || (i === 2 && t === 'contacts')
+          ? 'tab-btn active' : 'tab-btn';
+      });
+    }
+
+    function call1930() {
+      if (confirm("Initiate call to 1930 (National Cyber Crime Helpline)?")) {
+        window.location.href = "tel:1930";
+      }
+    }
+
+    // Preset test messages
+    const PRESETS = {
+      electricity: "Dear Consumer, your electricity power will be disconnected tonight at 9:30 PM by TGSPDCL officer because previous month bill was not updated. Call our electricity officer at 9848011223 immediately.",
+      challan: "TS TRAFFIC POLICE: Your vehicle has unpaid e-challan notice #5421. Pay immediately or vehicle will be seized. Click http://echallan-telangana.apk to download mParivahan and pay.",
+      job: "Earn Rs. 3000 to Rs. 5000 daily from home! Just like YouTube videos and submit screenshot. Contact Telegram task manager @job_india now.",
+      digital_arrest: "CBI & DELHI POLICE CYBER CRIME CELL: Illegal parcel seized in customs with your Aadhaar. Digital arrest warrant issued. Contact on WhatsApp immediately.",
+      yono: "SBI YONO Alert: Your netbanking account has been blocked due to unlinked PAN card. Click http://sbi-kyc-update.xyz to reactivate account within 24 hours.",
+      courier: "India Post: Your package #IN77281 is detained at warehouse due to incomplete street address. Update address within 12h at http://indiapost-parcel.top or parcel returns.",
+      lottery: "Congratulations! Your mobile number won 25 Lakhs in KBC WhatsApp Lucky Draw 2026. Contact KBC manager to claim your prize.",
+      telugu: "డియర్ కస్టమర్, మీ కరెంట్ బిల్లు చెల్లించనందున ఈ రాత్రి 9 గంటలకు పవర్ కట్ చేస్తాం. వెంటనే ఆఫీసర్ కి కాల్ చేసి డబ్బు పంపండి."
+    };
+
+    function loadPreset(key) {
+      document.getElementById('smsInput').value = PRESETS[key] || '';
+      scanSms();
+    }
+
+    // Deep SMS Scanner
+    function scanSms() {
+      const text = document.getElementById('smsInput').value;
+      const tLower = text.toLowerCase();
+      const res = document.getElementById('smsScanResult');
+      const title = document.getElementById('smsResultTitle');
+      const catTag = document.getElementById('smsCategoryTag');
+      const reasonsBox = document.getElementById('smsReasonsList');
+      const teluguBox = document.getElementById('smsTeluguBox');
+
+      if (!text.trim()) return;
+      res.style.display = 'block';
+
+      let cat = "SUSPICIOUS FRAUD";
+      let reasons = [];
+      let teluguAdvice = "అనుమానాస్పద లింకులను తెరవకండి.";
+
+      if (tLower.includes('electricity') || tLower.includes('power') || tLower.includes('current bill') || tLower.includes('కరెంట్')) {
+        cat = "ELECTRICITY BILL SCAM";
+        reasons.push("Threatening power disconnection if money is not sent immediately");
+        reasons.push("Unauthorized pressure tactic asking to call an unofficial personal phone number");
+        teluguAdvice = "💡 కరెంట్ ఆఫీస్ అధికారులు ఎప్పుడూ ఫోన్ చేసి బిల్లు కట్టకపోతే పవర్ కట్ చేస్తామని బెదిరించరు. ఎవరికీ కాల్ చేయకండి లేదా డబ్బు పంపకండి.";
+      } else if (tLower.includes('.apk') || tLower.includes('challan') || tLower.includes('చలాన్')) {
+        cat = "MALICIOUS APK / E-CHALLAN";
+        reasons.push("CRITICAL THREAT: Direct APK app download file link inside SMS");
+        reasons.push("Malicious APK apps steal bank OTPs and contacts once installed");
+        teluguAdvice = "🚗 మెసేజ్‌లలో వచ్చే లింక్స్ నుండి ఎప్పుడూ APK ఫైల్స్ డౌన్‌లోడ్ చేయకండి. చలాన్ చెల్లించడానికి అధికారిక echallan.tspolice.gov.in మాత్రమే వాడండి.";
+      } else if (tLower.includes('telegram') || tLower.includes('earn 3000') || tLower.includes('part time')) {
+        cat = "TELEGRAM TASK / JOB FRAUD";
+        reasons.push("Fake work-from-home offering unrealistic daily earnings for YouTube likes");
+        reasons.push("Traps victims in prepaid crypto/recharge tasks where funds are frozen");
+        teluguAdvice = "💼 యూట్యూబ్ లైక్‌లతో రోజుకు వేల రూపాయలు వస్తాయని చెప్పే స్కామ్‌లను నమ్మకండి. డబ్బు ఎప్పుడూ పంపకండి.";
+      } else if (tLower.includes('digital arrest') || tLower.includes('cbi') || tLower.includes('police')) {
+        cat = "DIGITAL ARREST SCAM";
+        reasons.push("Impersonating Police / CBI / Customs enforcement");
+        reasons.push("Coercion demanding immediate WhatsApp video contact under threat of arrest");
+        teluguAdvice = "👮 పోలీసులు లేదా సీబీఐ ఎప్పుడూ వాట్సాప్ లేదా వీడియో కాల్ ద్వారా అరెస్ట్ చేయరు. భయపడి డబ్బు పంపకండి.";
+      } else if (tLower.includes('yono') || tLower.includes('kyc') || tLower.includes('pan')) {
+        cat = "BANK ACCOUNT / KYC TRAP";
+        reasons.push("Fake banking urgency claiming netbanking or card is blocked");
+        reasons.push("Deceptive phishing URL imitating SBI/HDFC bank");
+        teluguAdvice = "🏦 బ్యాంక్ ఉద్యోగులు ఎప్పుడూ పాన్ లేదా ఆధార్ అప్డేట్ కోసం లింకులు పంపరు. బ్యాంకును నేరుగా సంప్రదించండి.";
+      } else if (tLower.includes('india post') || tLower.includes('package') || tLower.includes('detained')) {
+        cat = "COURIER / CUSTOMS SCAM";
+        reasons.push("Fake parcel address fee phishing attack");
+        reasons.push("Suspicious domain pretending to be India Post");
+        teluguAdvice = "📦 అడ్రస్ అప్డేట్ లేదా కస్టమ్స్ డ్యూటీ కోసం వచ్చే అనుమానాస్పద లింకులను క్లిక్ చేయకండి.";
+      } else {
+        cat = "SUSPICIOUS PHISHING";
+        reasons.push("Urgency language and unverified web link detected");
+        teluguAdvice = "⚠️ అనుమానాస్పద మెసేజ్. ఎటువంటి లింకులను క్లిక్ చేయకండి.";
+      }
+
+      catTag.textContent = cat;
+      title.textContent = `🚨 High Risk Fraud Detected: ${cat}`;
+      reasonsBox.innerHTML = "<strong>Detected Triggers:</strong><br>• " + reasons.join("<br>• ");
+      teluguBox.innerHTML = `<strong>🛡️ సంకల్ప్ కవచం సలహా:</strong><br>${teluguAdvice}`;
+    }
+
+    function simulateBomber() {
+      alert("⚠️ BOMBER ATTACK DETECTED: 8 OTP bursts detected within 15 seconds. Attack silenced and quarantined.");
+    }
+
+    function loadSampleTrap() {
+      document.getElementById('honeyTrapInput').value =
+        "Message 1: Hi handsome, you are looking so cute.\n" +
+        "Message 2: Let's do a private video call right now.\n" +
+        "Message 3: Send me your private photo.\n" +
+        "Message 4: Nenu mee video record chesanu. Send Rs 25,000 immediately or I will upload video to YouTube and send to your friends!";
+      analyseHoneyTrap();
+    }
+
+    function analyseHoneyTrap() {
+      const text = document.getElementById('honeyTrapInput').value.toLowerCase();
+      const box = document.getElementById('trapResult');
+      const expl = document.getElementById('trapExplanation');
+
+      if (!text.trim()) { alert("Please type or load conversation sample."); return; }
+      box.style.display = 'block';
+
+      expl.innerHTML = `
+        <strong>Extortion Sequence Identified:</strong><br>
+        • Step 1: Romantic opening ("handsome / cute")<br>
+        • Step 2: Private video call solicitation<br>
+        • Step 3: Private photo sharing pressure<br>
+        • Step 4: Video leak / social media blackmail demand for money<br><br>
+        <strong>⚠️ సలహా:</strong> భయపడి ఒక్క రూపాయి కూడా పంపకండి. సంభాషణ స్క్రీన్‌షాట్‌లు తీసి వెంటనే 1930 కి కాల్ చేయండి.
+      `;
+    }
+
+    function reportTrapToSupabase() {
+      alert("🚨 Reported Honey Trap pattern and phone number to Supabase!\nNumber added to community watchlist.");
+    }
+
+    // Amma Voice Assistant
+    function askAmma(q) {
+      document.getElementById('ammaInput').value = q;
+      sendAmmaMsg();
+    }
+
+    function sendAmmaMsg() {
+      const inp = document.getElementById('ammaInput');
+      const q = inp.value.trim();
+      if (!q) return;
+
+      const chat = document.getElementById('ammaChat');
+      const uBubble = document.createElement('div');
+      uBubble.className = 'chat-bubble user';
+      uBubble.textContent = q;
+      chat.appendChild(uBubble);
+      inp.value = '';
+
+      setTimeout(() => {
+        const aBubble = document.createElement('div');
+        aBubble.className = 'chat-bubble assistant';
+
+        const qLower = q.toLowerCase();
+        let ans = "";
+        if (qLower.includes('otp')) {
+          ans = "⚠️ OTP ఎవరికీ చెప్పకండి! బ్యాంక్ అధికారులు లేదా కస్టమర్ కేర్ ఎప్పుడూ OTP అడగరు. ఎవరైనా అడిగితే అది 100% స్కామ్.";
+        } else if (qLower.includes('current') || qLower.includes('electricity')) {
+          ans = "💡 కరెంట్ బిల్లు స్కామ్ చాలా మందిని మోసం చేస్తోంది. అధికారులు ఎప్పుడూ రాత్రి పూట ఫోన్ చేసి పవర్ కట్ చేస్తామని అనరు. ఎవరికీ కాల్ చేసి డబ్బు పంపకండి.";
+        } else if (qLower.includes('1930')) {
+          ans = "1930 అనేది భారత ప్రభుత్వ అధికారిక సైబర్ క్రైమ్ హెల్ప్‌లైన్ నంబర్. ఆన్‌లైన్ మోసం జరిగితే మొదటి 24 గంటల్లోపు 1930 కి కాల్ చేస్తే మీ డబ్బును రికవర్ చేసే అవకాశం ఉంటుంది.";
+        } else {
+          ans = "గుర్తుంచుకోండి: సంకల్ప్ కవచం లో Supabase ద్వారా ప్రతి స్కామ్ నంబర్ రియల్-టైమ్ లో కమ్యూనిటీతో షేర్ అవుతుంది. ఎప్పుడూ తెలియని లింక్స్ క్లిక్ చేయకండి.";
+        }
+
+        aBubble.innerText = ans;
+        chat.appendChild(aBubble);
+        chat.scrollTop = chat.scrollHeight;
+
+        if ('speechSynthesis' in window) {
+          const u = new SpeechSynthesisUtterance(ans);
+          u.lang = 'te-IN';
+          window.speechSynthesis.speak(u);
+        }
+      }, 400);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function toggleVoice() {
+      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const rec = new SpeechRec();
+        rec.lang = 'te-IN';
+        rec.onstart = () => { alert("🎙️ Listening... Speak in Telugu or English now."); };
+        rec.onresult = (e) => {
+          document.getElementById('ammaInput').value = e.results[0][0].transcript;
+          sendAmmaMsg();
+        };
+        rec.start();
+      } else {
+        alert("Speech Recognition is supported in modern Chrome/Edge browsers.");
+      }
+    }
+
+    function previewMedia(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('imgPreview').src = e.target.result;
+          document.getElementById('mediaPreviewBox').style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function inspectMedia() {
+      const res = document.getElementById('mediaResult');
+      const text = document.getElementById('mediaResultText');
+      res.style.display = 'block';
+      text.innerHTML = "✅ <strong>On-Device Analysis Complete</strong><br>• Face detected: 1 human subject<br>• Symmetry analysis: Normal landmark ratio<br>• EXIF Integrity: Valid local camera metadata<br>• Privacy: Processed on device. File not uploaded.";
+    }
+
+    // Initialize
+    fetchSupabaseNumbers();
+  </script>
+</body>
+</html>

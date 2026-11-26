@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary_green">#16A34A</color>
+    <color name="dark_green">#065F46</color>
+    <color name="light_green">#DCFCE7</color>
+    <color name="background">#F8FAFC</color>
+    <color name="card_white">#FFFFFF</color>
+    <color name="danger_red">#DC2626</color>
+    <color name="warning_orange">#F59E0B</color>
+    <color name="text_primary">#0F172A</color>
+    <color name="text_secondary">#64748B</color>
+</resources>
+
